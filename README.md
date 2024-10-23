@@ -1,9 +1,9 @@
 ## Instruções definidas/funcionais
 
-### R
+### Tipo R
 - add
 - sub
 - sll
 
-### I
+### Tipo I
 - addi
