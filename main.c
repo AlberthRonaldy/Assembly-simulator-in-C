@@ -232,7 +232,7 @@ int main() {
     InstrucaoR instrR3 = {0, 0, 8, 12, 2, 0}; // SLL $t2 = $t0 << 2 (deslocar $t0 2 posições à esquerda)
     //deslocar um número duas posições à esquerda é equivalente a multiplicá-lo por 2² (ou seja, multiplicá-lo por 4)
 
-    // Criação das instruções do tipo R
+    // Criação das instruções do tipo I
     InstrucaoI instrI1 = {8, 19, 18, 5}; // ADDI $s1, $s0, 5 (s1 = 00 + 5) - 8 = código de ref do ADDI.
 
 
