@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 // Estrutura de registradores (32 registradores de 32 bits)
@@ -17,7 +18,7 @@ typedef struct {
 // Estrutura para uma instrução do tipo R
 // uint32_t: Isso define o tipo base da variável, ou seja, ela é armazenada em uma unidade de 32 bits.
 typedef struct {
-    uint32_t opcode : 6; //Isso indica que dentro desses 32 bits, apenas 6 bits serão usados para o campo opcode, segue para o resto.
+    uint32_t opcode : 6;  //Isso indica que dentro desses 32 bits, apenas 6 bits serão usados para o campo opcode, segue para o resto.
     uint32_t rs : 5; 
     uint32_t rt : 5; 
     uint32_t rd : 5; 
@@ -27,10 +28,10 @@ typedef struct {
 
 // Estrutura para uma instrução do tipo I
 typedef struct {
-    uint32_t opcode : 6;
-    uint32_t rt : 5;  
-    uint32_t rs : 5;  
-    uint32_t immediate : 16;  
+    uint32_t opcode : 6; 
+    uint32_t rs : 5; 
+    uint32_t rt : 5; 
+    uint32_t immediate : 16; 
 } InstrucaoI;
 
 // Estrutura para uma instrução do tipo J
@@ -45,15 +46,6 @@ typedef struct {
     FUNC_SLL = 0,
 } FuncaoInstrucao;
 */
-
-// Prototipagem das funções
-void inicializar_registradores(Registrador registradores[]);
-void definir_registrador(Registradores *regs, Registrador registradores[], const char *nome, int32_t valor);
-const char* obter_nome_registrador(Registrador registradores[], int num);
-void executar_instrucaoR(InstrucaoR instrucao, Registradores *regs, Registrador registradores[]);
-void executar_instrucaoI(InstrucaoI instrucao, Registradores *regs, Registrador registradores[]);
-void mostrar_informacoes_registradores(Registrador registradores[]);
-void mostrar_registradores(Registradores *regs, Registrador registradores[]);
 
 // Função para inicializar os registradores
 void inicializar_registradores(Registrador registradores[]) {
@@ -113,85 +105,135 @@ const char* obter_nome_registrador(Registrador registradores[], int num) {
 }
 
 // Função para executar uma instrução do tipo R
-void executar_instrucaoR(InstrucaoR instrucao, Registradores *regs, Registrador registradores[]) {
-    int32_t resultado;
-    const char *operacao;
-    const char *operador;
+void executar_instrucaoR(InstrucaoR instrucao, Registradores *regs) {
 
+    // Verifica se o opcode é diferente de 0
+    if (instrucao.opcode != 0) {
+        printf("Erro: Opcode invalido para instrucao do tipo R: %d\n", instrucao.opcode);
+        return;
+    }
+    
+    int32_t resultado;
+    
     switch(instrucao.funct) {
         case 32: // ADD
             resultado = regs->reg[instrucao.rs] + regs->reg[instrucao.rt];
-            operacao = "add";
-            operador = "+";
+            regs->reg[instrucao.rd] = resultado;
+            printf("ADD: %d + %d = %d (salvo em $%d)\n", 
+                   regs->reg[instrucao.rs], 
+                   regs->reg[instrucao.rt], 
+                   resultado, 
+                   instrucao.rd);
             break;
-        case 34:  //SUB
+        case 34:  // SUB
             resultado = regs->reg[instrucao.rs] - regs->reg[instrucao.rt];
-            operacao = "sub";
-            operador = "-";
+            regs->reg[instrucao.rd] = resultado;
+            printf("SUB: %d - %d = %d (salvo em $%d)\n", 
+                   regs->reg[instrucao.rs], 
+                   regs->reg[instrucao.rt], 
+                   resultado, 
+                   instrucao.rd);
             break;
-        case 0:   // SLL
-            resultado = regs->reg[instrucao.rt] << instrucao.shamt; // Deslocamento à esquerda
-            operacao = "sll";
-            operador = "<<";
+        case 0: // SLL
+            resultado = regs->reg[instrucao.rt] << instrucao.shamt; // Desloca à esquerda
+            regs->reg[instrucao.rd] = resultado;
+            printf("SLL: %d << %d = %d (salvo em $%d)\n", 
+                   regs->reg[instrucao.rt], 
+                   instrucao.shamt, 
+                   resultado, 
+                   instrucao.rd);
             break;
         default:
             printf("Instrucao do tipo R nao suportada: %d\n", instrucao.funct);
-            return;
-    }
-    // Atribui o resultado ao registrador de destino e imprime o resultado
-    regs->reg[instrucao.rd] = resultado;
-    // Se for sll não vai usar 3 registradores, somente 2
-    if (instrucao.funct == 0) {
-        printf("%s %s => %d %s %d = %d\n", 
-            operacao, 
-            obter_nome_registrador(registradores, instrucao.rt), 
-            regs->reg[instrucao.rt], 
-            operador, 
-            instrucao.shamt, 
-            resultado);
-    } else {
-        printf("%s %s, %s, %s => %d %s %d = %d\n", 
-            operacao, 
-            obter_nome_registrador(registradores, instrucao.rd), 
-            obter_nome_registrador(registradores, instrucao.rs), 
-            obter_nome_registrador(registradores, instrucao.rt), 
-            regs->reg[instrucao.rs], 
-            operador, 
-            regs->reg[instrucao.rt], 
-            resultado);
+            break;
     }
 }
 
-// Função para executar uma instrução do tipo I
-// Instruções do tipo I usam o opcode como ref
-void executar_instrucaoI(InstrucaoI instrucao, Registradores *regs, Registrador registradores[]) {
-    int32_t resultado;
-    const char *operacao;
-    const char *operador;
+void ler_instrucaoR(char *input, InstrucaoR *instrucao) {
+    // Remove o comentário da entrada
+    char *comentario = strchr(input, ';');
+    if (comentario) {
+        *comentario = '\0'; // Trunca a string na posição do ';'
+    }
 
-    switch(instrucao.opcode) {
-        case 8: // ADDI (Add Immediate)
-            resultado = regs->reg[instrucao.rs] + instrucao.immediate;
-            operacao = "addi";
-            operador = "+";
+    // Variáveis para armazenar os valores temporários
+    int values[6];
+    int count = 0;
+
+    // Tokeniza a string de entrada
+    char *token = strtok(input, ", ");
+    while (token != NULL && count < 6) {
+        values[count++] = atoi(token); // Converte para inteiro e armazena
+        token = strtok(NULL, ", ");
+    }
+
+    // Atribui os valores à estrutura
+    if (count == 6) {
+        instrucao->opcode = values[0];
+        instrucao->rs = values[1];
+        instrucao->rt = values[2];
+        instrucao->rd = values[3];
+        instrucao->shamt = values[4];
+        instrucao->funct = values[5];
+    } else {
+        printf("Erro: Numero de valores invalido.\n");
+    }
+}
+
+void executar_instrucaoI(InstrucaoI instrucao, Registradores *regs) {
+
+    int32_t resultado;
+
+     switch(instrucao.opcode) {
+        case 8: // ADDI
+            resultado = regs->reg[instrucao.rt] = regs->reg[instrucao.rs] + instrucao.immediate;
+            printf("ADDI: %d + %d = %d (salvo em $%d)\n", 
+                regs->reg[instrucao.rs], 
+                instrucao.immediate, 
+                regs->reg[instrucao.rt], 
+                instrucao.rt);
             break;
-        // Continuação das outras 2 intruções do tipo I
+            // Implementação das outras instruções I...
         default:
             printf("Instrucao do tipo I nao suportada: %d\n", instrucao.opcode);
-            return;
+            break;
     }
-    regs->reg[instrucao.rt] = resultado;
-    printf("%s %s, %s, %d => %d %s %d = %d\n", 
-        operacao, 
-        obter_nome_registrador(registradores, instrucao.rt), 
-        obter_nome_registrador(registradores, instrucao.rs), 
-        instrucao.immediate, 
-        regs->reg[instrucao.rs], 
-        operador, 
-        instrucao.immediate, 
-        resultado);
 }
 
+void ler_instrucaoI(char *input, InstrucaoI *instrucao) {
+    // Remove o comentário da entrada
+    char *comentario = strchr(input, ';');
+    if (comentario) {
+        *comentario = '\0'; // Trunca a string na posição do ';'
+    }
+
+    // Variáveis para armazenar os valores temporários
+    int values[4];
+    int count = 0;
+
+    // Tokeniza a string de entrada
+    char *token = strtok(input, ", ");
+    while (token != NULL && count < 4) {
+        values[count++] = atoi(token); // Converte para inteiro e armazena
+        token = strtok(NULL, ", ");
+    }
+
+    // Atribui os valores à estrutura
+    if (count == 4) {
+        instrucao->opcode = values[0];  // 8 para ADDI
+        instrucao->rs = values[1];       // Registrador fonte
+        instrucao->rt = values[2];       // Registrador destino
+        instrucao->immediate = values[3]; // Valor imediato
+    } else {
+        printf("Erro: Numero de valores invalido.\n");
+    }
+}
+
+int verificar_tipo_instrucao(char *input) {
+    // Analisa o primeiro valor para determinar se é do tipo R ou I
+    int opcode = atoi(input); // Supõe que o opcode está no início do input
+    return opcode == 8 ? 1 : 0; // 1 para instrução I (ADDI), 0 para R
+}
 
 // Função para mostrar informações dos registradores
 void mostrar_informacoes_registradores(Registrador registradores[]) {
@@ -211,42 +253,46 @@ void mostrar_registradores(Registradores *regs, Registrador registradores[]) {
     }
 }
 
+
 int main() {
     // Inicializando os registradores com 0
     Registradores regs = {{0}};
     Registrador registradores[32];
 
-    // Inicializando os registradores
     inicializar_registradores(registradores);
     mostrar_informacoes_registradores(registradores);
 
-    // Definindo os valores dos registradores
-    definir_registrador(&regs, registradores, "$t0", 27);  // 8 (correspondente a $t0) = 5
-    definir_registrador(&regs, registradores, "$t1", 10); // 9 (correspondente a $t1) = 10
-    definir_registrador(&regs, registradores, "$s0", 20); // 18 (corresponde a $s0) = 20
+    // Definindo alguns valores nos registradores
+    definir_registrador(&regs, registradores, "$t0", 27);  //REGISTRADOR 8
+    definir_registrador(&regs, registradores, "$t1", 10); //REGISTRADOR 9
+    definir_registrador(&regs, registradores, "$s0", 20); //REGISTRADOR 18
 
 
-    // Criação das instruções do tipo R
-    InstrucaoR instrR1 = {0, 8, 9, 10, 0, 32}; // ADD $t2 = $t0 + $t1
-    InstrucaoR instrR2 = {0, 8, 9, 11, 0, 34}; // SUB $t3 = $t0 - $t1
-    InstrucaoR instrR3 = {0, 0, 8, 12, 2, 0}; // SLL $t2 = $t0 << 2 (deslocar $t0 2 posições à esquerda)
-    //deslocar um número duas posições à esquerda é equivalente a multiplicá-lo por 2² (ou seja, multiplicá-lo por 4)
+    char instrucao_input[100];
+    printf("Insira a instrucao MIPS: ");
+    fgets(instrucao_input, sizeof(instrucao_input), stdin);
 
-    // Criação das instruções do tipo I
-    InstrucaoI instrI1 = {8, 19, 18, 5}; // ADDI $s1, $s0, 5 (s1 = 00 + 5) - 8 = código de ref do ADDI.
-
-
-    // Executando as instruções do tipo R
-    executar_instrucaoR(instrR1, &regs, registradores);
-    executar_instrucaoR(instrR2, &regs, registradores);
-    executar_instrucaoR(instrR3, &regs, registradores);
-
-    // Executando as instruções do tipo I
-    executar_instrucaoI(instrI1, &regs, registradores);
-
+    // Verifica o tipo da instrução usando a nova função
+    if (verificar_tipo_instrucao(instrucao_input)) {
+        InstrucaoI instrI;
+        ler_instrucaoI(instrucao_input, &instrI); // Lê a instrução I
+        executar_instrucaoI(instrI, &regs); // Executa a instrução I
+        // EXEMPLO ADDI -> 8, 18, 19, 5
+    } else {
+        InstrucaoR instrR1;
+        // EXEMPLO ADD -> 0, 8, 9, 10, 0, 32
+        // EXEMPLO SUB -> 0, 8, 9, 11, 0, 34
+        // EXEMPLO SLL -> 0, 0, 8, 12, 2, 0
+        ler_instrucaoR(instrucao_input, &instrR1); // Lê a instrução R
+        executar_instrucaoR(instrR1, &regs); // Executa a instrução R
+    }
 
     // Mostrando os registradores e suas informações
     mostrar_registradores(&regs, registradores);
+
+    //TODO
+    //ARRUMAR FORMATAÇÃO COLOCANDO REGISTRADORES = (ATUAL)SLL: 27 << 2 = 108 (salvo em $12) -> sll $t0 => 27 << 2 = 108
+    //ARRUMAR EXCEÇÃO DE OPCODE NA INSTRUÇÃO I, QUANDO É 8 OKAY MAS QUANDO NÃO É ESTÁ RETORNANDO O ERRO DA INSTRUÇÃO R DE OPCODE
 
     return 0;
 }
