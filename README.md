@@ -1,9 +1,15 @@
 ## Instruções definidas/funcionais
 
 ### Tipo R
-- add
-- sub
-- sll
+- ADD
+- SUB
+- SLL
 
 ### Tipo I
-- addi
+- ADDI
+- BEQ
+- BNE
+
+### Tipo J
+- J
+- JAL
