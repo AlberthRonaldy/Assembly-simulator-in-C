@@ -34,6 +34,7 @@ void exibir_instrucoes_disponiveis() {
     printf("Instrucoes disponiveis:\n");
     printf(" - ADD\n");
     printf(" - SUB\n");
+    printf(" - SLL\n");
     printf(" - BEQ\n");
     printf(" - BNE\n");
     printf(" - J\n");
@@ -51,11 +52,26 @@ int buscar_numero_registrador(const char *nome, const Registrador *tabela, int t
     return -1;
 }
 
+// Função para remover as vírgulas da entrada
+void remover_virgulas(char *input) {
+    char *src = input, *dst = input;
+    while (*src) {
+        if (*src != ',') {
+            *dst++ = *src;
+        }
+        src++;
+    }
+    *dst = '\0'; // Termina a string
+}
+
+
 void executar_instrucaoR(Instrucao *instrucao, Registradores *registradores) {
     if (instrucao->funct == 32) { // ADD
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rs] + registradores->reg[instrucao->rt];
     } else if (instrucao->funct == 34) { // SUB
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rs] - registradores->reg[instrucao->rt];
+    } else if (instrucao->funct == 0) { // SLL
+        registradores->reg[instrucao->rd] = registradores->reg[instrucao->rt] << instrucao->shamt;
     }
 }
 
@@ -92,6 +108,10 @@ void executar_instrucao(Instrucao *instrucao, Registradores *registradores, int 
 }
 
 void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registradores, const Registrador *tabela, int tamanho_tabela, int *pc) {
+
+    // Remover as vírgulas da entrada
+    remover_virgulas(input);
+    
     char *token = strtok(input, " ");
     if (!token) return;
 
@@ -104,6 +124,10 @@ void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registrado
         instrucao->tipo = TIPO_R;
         instrucao->opcode = 0;
         instrucao->funct = 34;
+    } else if (strcmp(token, "SLL") == 0) {
+        instrucao->tipo = TIPO_R;
+        instrucao->opcode = 0;
+        instrucao->funct = 0;
     } else if (strcmp(token, "BEQ") == 0) {
         instrucao->tipo = TIPO_I;
         instrucao->opcode = 4;
@@ -120,15 +144,25 @@ void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registrado
 
     // Lê os registradores ou valores específicos da instrução
     if (instrucao->tipo == TIPO_R) {
-        // Instruções tipo R: ADD, SUB (formato: OP RD, RS, RT)
-        token = strtok(NULL, " ");
-        instrucao->rd = buscar_numero_registrador(token, tabela, tamanho_tabela);
+        if (instrucao->funct == 0) { // SLL (formato: SLL RD, RT, SHAMT)
+            token = strtok(NULL, " ");
+            instrucao->rd = buscar_numero_registrador(token, tabela, tamanho_tabela);
 
-        token = strtok(NULL, " ");
-        instrucao->rs = buscar_numero_registrador(token, tabela, tamanho_tabela);
+            token = strtok(NULL, " ");
+            instrucao->rt = buscar_numero_registrador(token, tabela, tamanho_tabela);
 
-        token = strtok(NULL, " ");
-        instrucao->rt = buscar_numero_registrador(token, tabela, tamanho_tabela);
+            token = strtok(NULL, " ");
+            instrucao->shamt = atoi(token); // Converte o valor de shamt para inteiro
+        } else { // ADD, SUB (formato: OP RD, RS, RT)
+            token = strtok(NULL, " ");
+            instrucao->rd = buscar_numero_registrador(token, tabela, tamanho_tabela);
+
+            token = strtok(NULL, " ");
+            instrucao->rs = buscar_numero_registrador(token, tabela, tamanho_tabela);
+
+            token = strtok(NULL, " ");
+            instrucao->rt = buscar_numero_registrador(token, tabela, tamanho_tabela);
+        }
     } else if (instrucao->tipo == TIPO_I) {
         // Instruções tipo I: BEQ, BNE (formato: OP RS, RT, IMMEDIATE)
         token = strtok(NULL, " ");
@@ -202,4 +236,4 @@ int main() {
     }
 
     return 0;
-}z
+}
