@@ -35,6 +35,7 @@ void exibir_instrucoes_disponiveis() {
     printf(" - ADD\n");
     printf(" - SUB\n");
     printf(" - SLL\n");
+    printf(" - ADDI\n");
     printf(" - BEQ\n");
     printf(" - BNE\n");
     printf(" - J\n");
@@ -84,6 +85,8 @@ void executar_instrucaoI(Instrucao *instrucao, Registradores *registradores, int
         if (registradores->reg[instrucao->rs] != registradores->reg[instrucao->rt]) {
             *pc += instrucao->immediate; // Salta para o endereço de destino
         }
+     } else if (instrucao->opcode == 8) { // ADDI
+        registradores->reg[instrucao->rs] = registradores->reg[instrucao->rt] + instrucao->immediate;
     }
 }
 
@@ -128,6 +131,9 @@ void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registrado
         instrucao->tipo = TIPO_R;
         instrucao->opcode = 0;
         instrucao->funct = 0;
+    } else if (strcmp(token, "ADDI") == 0) { 
+        instrucao->tipo = TIPO_I;
+        instrucao->opcode = 8;
     } else if (strcmp(token, "BEQ") == 0) {
         instrucao->tipo = TIPO_I;
         instrucao->opcode = 4;
@@ -164,7 +170,7 @@ void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registrado
             instrucao->rt = buscar_numero_registrador(token, tabela, tamanho_tabela);
         }
     } else if (instrucao->tipo == TIPO_I) {
-        // Instruções tipo I: BEQ, BNE (formato: OP RS, RT, IMMEDIATE)
+        // Instruções tipo I: ADDI, BEQ, BNE (formato: OP RS, RT, IMMEDIATE)
         token = strtok(NULL, " ");
         instrucao->rs = buscar_numero_registrador(token, tabela, tamanho_tabela);
 
