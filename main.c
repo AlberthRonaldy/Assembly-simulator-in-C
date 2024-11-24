@@ -29,6 +29,21 @@ typedef struct {
     int immediate;   // Para instruções do tipo I
 } Instrucao;
 
+const char* nomes_registradores[32] = {
+    "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",  // 0-7
+    "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",  // 8-15
+    "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",  // 16-23
+    "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra"   // 24-31
+};
+
+
+void listar_registradores(Registradores *registradores, const Registrador *tabela, int tamanho_tabela) {
+    printf("Registradores:\n");
+    
+    for (int i = 0; i < tamanho_tabela; i++) {
+        printf("%s: %d\n", tabela[i].nome, registradores->reg[tabela[i].num]);
+    }
+}
 // Exibe as instruções disponíveis
 void exibir_instrucoes_disponiveis() {
     printf("Instrucoes disponiveis:\n");
@@ -40,6 +55,7 @@ void exibir_instrucoes_disponiveis() {
     printf(" - BNE\n");
     printf(" - J\n");
     printf(" - JAL\n");
+    printf(" - JR\n");
     // Adicione outras instruções conforme necessário
     printf("Digite uma instrucao:\n");
 }
@@ -66,13 +82,16 @@ void remover_virgulas(char *input) {
 }
 
 
-void executar_instrucaoR(Instrucao *instrucao, Registradores *registradores) {
+void executar_instrucaoR(Instrucao *instrucao, Registradores *registradores, int *pc) {
     if (instrucao->funct == 32) { // ADD
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rs] + registradores->reg[instrucao->rt];
+        *pc += 1;
     } else if (instrucao->funct == 34) { // SUB
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rs] - registradores->reg[instrucao->rt];
+        *pc += 1;
     } else if (instrucao->funct == 0) { // SLL
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rt] << instrucao->shamt;
+        *pc += 1;
     }
 }
 
@@ -96,13 +115,15 @@ void executar_instrucaoJ(Instrucao *instrucao, Registradores *registradores, int
     } else if (instrucao->opcode == 3) { // JAL
         registradores->reg[31] = *pc + 1; // Guarda o endereço de retorno no registrador $ra
         *pc = instrucao->address;
+    } else if (instrucao->opcode == 4) { // JR (Jump Register)
+        *pc = registradores->reg[instrucao->rs]; // Ajusta o PC para o endereço armazenado em $rs
     }
 }
 
 // Função principal para executar instruções
 void executar_instrucao(Instrucao *instrucao, Registradores *registradores, int *pc) {
     if (instrucao->tipo == TIPO_R) {
-        executar_instrucaoR(instrucao, registradores);
+        executar_instrucaoR(instrucao, registradores, pc);
     } else if (instrucao->tipo == TIPO_I) {
         executar_instrucaoI(instrucao, registradores, pc);
     } else if (instrucao->tipo == TIPO_J) {
@@ -146,6 +167,9 @@ void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registrado
     } else if (strcmp(token, "JAL") == 0) {
         instrucao->tipo = TIPO_J;
         instrucao->opcode = 3;
+    } else if (strcmp(token, "JR") == 0) {
+        instrucao->tipo = TIPO_J;
+        instrucao->opcode = 4;
     }
 
     // Lê os registradores ou valores específicos da instrução
@@ -180,7 +204,7 @@ void ler_e_executar(char *input, Instrucao *instrucao, Registradores *registrado
         token = strtok(NULL, " ");
         instrucao->immediate = atoi(token); // Converte o imediato para inteiro
     } else if (instrucao->tipo == TIPO_J) {
-        // Instruções tipo J: J, JAL (formato: OP ADDRESS)
+        // Instruções tipo J: J, JAL, JR (formato: OP ADDRESS)
         token = strtok(NULL, " ");
         instrucao->address = atoi(token); // Converte o endereço para inteiro
     }
@@ -220,6 +244,7 @@ int main() {
     imprimir_registradores_iniciais(&registradores, tabela_registradores, sizeof(tabela_registradores) / sizeof(tabela_registradores[0]));
 
     while (1) {
+        listar_registradores(&registradores, tabela_registradores, sizeof(tabela_registradores) / sizeof(tabela_registradores[0]));
         exibir_instrucoes_disponiveis();  // Exibe as instruções disponíveis ao usuário
 
         char input[100];
