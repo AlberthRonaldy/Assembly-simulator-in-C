@@ -85,13 +85,13 @@ void remover_virgulas(char *input) {
 void executar_instrucaoR(Instrucao *instrucao, Registradores *registradores, int *pc) {
     if (instrucao->funct == 32) { // ADD
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rs] + registradores->reg[instrucao->rt];
-        *pc += 1;
+        *pc += 4;
     } else if (instrucao->funct == 34) { // SUB
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rs] - registradores->reg[instrucao->rt];
-        *pc += 1;
+        *pc += 4;
     } else if (instrucao->funct == 0) { // SLL
         registradores->reg[instrucao->rd] = registradores->reg[instrucao->rt] << instrucao->shamt;
-        *pc += 1;
+        *pc += 4;
     }
 }
 
